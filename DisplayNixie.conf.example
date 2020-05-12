@@ -1,0 +1,12 @@
+# Set the time intervals when the clock should be turned on.
+# Number before the colon is "days since Sunday", so 0 is Sunday,
+# 1 is Monday etc.
+# The time interval matches the hour, so 7-23 is 07:00:00-23:59:59.
+0: 7-23
+1: 7-18
+2: 7-18
+3: 7-18
+4: 7-18
+5: 7-18
+6: 7-23
+
