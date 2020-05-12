@@ -1,5 +1,5 @@
 # nixieclock-NCS314
-Enhanced software for the GRA &amp; AFCH NIXIE tube clock. Changes include:
+Enhanced software for the [GRA &amp; AFCH](https://gra-afch.com/) NIXIE tube clock. Changes include:
 
 - Always use NTS for signed NTP to set the time, using Netnod NTS servers
 - Display the IP address of the wlan0 interface if you press the mode button
@@ -11,12 +11,17 @@ This software can replace the DisplayNixie software distributed with the NCS314 
 
 https://gra-afch.com/catalog/nixie-tubes-clock-without-cases/nixie-tubes-clock-raspberry_pi_arduino-shield-ncs314-for-in-14-nixie-tubes-options-tubes-gps-remote-arduino/
 
+The original code you can find in this repository, where you also see more information about the code on the clocks you get shipped to you.
+
+https://github.com/afch/NixieClockRaspberryPi
+
 The Nixie Tubes can have a card of version 2.x or 3.x. The two versions of the DisplayNixie binary (DisplayNixie and DisplayNixie3x) in this repository are for each one of the cards.
 
 To install and build the clock do as follows:
 
 # 1. Get the clock
-Buy the clock, follow instructions to do base install of the RaspberryPi and software for the clock. Ensure the clock works.
+Buy the clock, follow instructions to do base install of the RaspberryPi and software for the clock. Ensure the clock works. Look at the instructions in this repository if you have problems:
+https://github.com/afch/NixieClockRaspberryPi
 # 2. Ensure the clock use NTS
 ## 2.1. Turn off systemd timesyncd
 ```
