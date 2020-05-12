@@ -2,7 +2,7 @@
 Enhanced software for the [GRA &amp; AFCH](https://gra-afch.com/) NIXIE tube clock. Changes include:
 
 - Always use NTS for signed NTP to set the time, using Netnod NTS servers
-- Display the IP address of the wlan0 interface if you press the mode button
+- Display the IPv4 address of the wlan0 interface if you press the mode button
 - Turn the display on/off when you press the mode button
 - Do AntiPoison of the tubes last second of each hour
 - Configure when the tubes should be turned on (one time interval per weekday)
