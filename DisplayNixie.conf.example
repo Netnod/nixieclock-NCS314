@@ -1,3 +1,6 @@
+# Set the interface which is used for the access (to display IP address)
+if: wlan0
+
 # Set the time intervals when the clock should be turned on.
 # Number before the colon is "days since Sunday", so 0 is Sunday,
 # 1 is Monday etc.

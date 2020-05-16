@@ -88,7 +88,8 @@ bool displayOn = true;
 // Keep track of when to turn the clock on and off
 int turn_on[7];
 int turn_off[7];
-
+// Name of the interface to check IP address of
+char interface[80];
 // Set default clock mode
 // NOTE:  true means rely on system to keep time (e.g. NTP assisted for accuracy).
 bool useSystemRTC = true;
@@ -314,8 +315,11 @@ read_config(char *filename) {
     perror(filename);
     exit(1);
   }
+  strcpy(interface, "wlan0");
   while ((read = getline(&line, &len, fp)) != -1) {
-    if(sscanf(line, "%d:%d-%d", &maybeday, &maybestart, &maybeend) == 3) {
+    if(sscanf(line, "if: %s", interface)) {
+      printf("Use interface %s\n", interface);
+    } else if(sscanf(line, "%d:%d-%d", &maybeday, &maybestart, &maybeend) == 3) {
       if(maybeday >= 0 && maybeday < 7 && maybestart >=0 && maybestart <= 24 && maybeend >= 0 && maybeend <= 24) {
 	turn_on[maybeday] = maybestart;
 	turn_off[maybeday] = maybeend;
@@ -466,7 +470,7 @@ int main(int argc, char* argv[]) {
 		  if(displayIPAddress) {
                     int i[4];
                     free(myIPAddress);
-                    myIPAddress = parse_ioctl("wlan0");
+                    myIPAddress = parse_ioctl(interface);
 		    if (4 == sscanf(myIPAddress, "%d.%d.%d.%d", &(i[0]), &(i[1]), &(i[2]), &(i[3]))) {
                       sprintf(_stringToDisplay, "000%03d", i[theOctet]);
                       if(theOctet == 0) {
