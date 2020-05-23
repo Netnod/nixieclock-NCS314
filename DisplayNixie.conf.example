@@ -1,3 +1,8 @@
+# Set the port which is used for listening for commands:
+# GET /ON HTTP/1.0 <--- Turns the clock on
+# GET /OFF HTTP/1.0 <--- Turns the clock off
+port: 5000
+
 # Set the interface which is used for the access (to display IP address)
 if: wlan0
 

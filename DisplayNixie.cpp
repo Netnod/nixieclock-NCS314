@@ -27,6 +27,17 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <signal.h> 
+#include <stdlib.h> 
+#include <strings.h> 
+#include <sys/socket.h> 
+#include <sys/types.h> 
+#include <unistd.h> 
+
+#define MAXLINE 1024
 
 using namespace std;
 #define LEpin 3
@@ -92,7 +103,8 @@ char interface[80];
 // Set default clock mode
 // NOTE:  true means rely on system to keep time (e.g. NTP assisted for accuracy).
 bool useSystemRTC = true;
-
+// Port number to listen from commands
+int port = 5000;
 // Set the hour mode
 // Set use12hour = true for hours 0-12 and 1-11 (e.g. a.m./p.m. implied)
 // Set use12hour = false for hours 0-23
@@ -381,6 +393,8 @@ read_config(char *filename) {
   while ((read = getline(&line, &len, fp)) != -1) {
     if(sscanf(line, "if: %s", interface)) {
       printf("Use interface %s\n", interface);
+    } else if(sscanf(line, "port: %d", &port)) {
+      printf("Use port %d\n", port);
     } else if(sscanf(line, "%d:%d-%d", &maybeday, &maybestart, &maybeend) == 3) {
       if(maybeday >= 0 && maybeday < 7 && maybestart >=0 && maybestart <= 24 && maybeend >= 0 && maybeend <= 24) {
 	turn_on[maybeday] = maybestart;
@@ -404,11 +418,21 @@ read_config(char *filename) {
   if (line) {
     free(line);
   }
+  printf("End of config file.\n");
   return;
 }
 
 int main(int argc, char* argv[]) {
         int theday;
+
+	int listenfd, connfd = -1, nready, maxfdp1;
+	char buffer[MAXLINE]; 
+	char message[MAXLINE];
+	fd_set rset; 
+	socklen_t len; 
+	struct sockaddr_in cliaddr, servaddr;
+	void sig_chld(int); 
+	struct timeval wait;
 
         printf("Nixie Clock v%s \n\r", _VERSION);
 
@@ -509,7 +533,22 @@ int main(int argc, char* argv[]) {
 	  printf("Start with clock turned off, toggle on Mode button\n");
 	  displayOn = false;
 	}
-	
+
+	/* create listening TCP socket */
+	listenfd = socket(AF_INET, SOCK_STREAM, 0); 
+	bzero(&servaddr, sizeof(servaddr)); 
+	servaddr.sin_family = AF_INET; 
+	servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
+	servaddr.sin_port = htons(port); 
+	printf("Binding to port %d\n", port);
+	// binding server addr structure to listenfd 
+	bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)); 
+	listen(listenfd, 10); 
+	// clear the descriptor set 
+	FD_ZERO(&rset); 
+	// get maxfd 
+	maxfdp1 = listenfd + 1; 
+
 // Tell the user the SPI status
 	if (wiringPiSPISetupMode (0, 2000000, 2)) {
 		puts("SPI ok");
@@ -593,8 +632,9 @@ int main(int argc, char* argv[]) {
 		      theOctet = 0;
 		      doAntiPoisoning = true;
 		      thePoison = 0;
+		    } else {
+		      theOctet++;
 		    }
-		    theOctet++;
 		  }
 		}
 
@@ -645,11 +685,55 @@ int main(int argc, char* argv[]) {
 		wiringPiSPIDataRW(0, buff, 8);
 		digitalWrite(LEpin, HIGH);
 // paf mod
-// Do not delay during AntiPoisoning
-		if(!doAntiPoisoning) {
-		  delay (TOTAL_DELAY);
+
+		if(doAntiPoisoning) {
+		  wait.tv_sec = 0;
+		  wait.tv_usec = 0; // Do not wait at all
+		} else {
+		  wait.tv_sec = 0;
+		  wait.tv_usec = 100000; // One 10th of a second
 		}
-	}
-	while (true);
+
+		if(connfd < 0) {
+		  // No ongoing connection
+		  // set listenfd in readset 
+		  FD_SET(listenfd, &rset); 
+		  // select the ready descriptor 
+		  nready = select(maxfdp1, &rset, NULL, NULL, &wait); 
+		  if(nready == 0) {
+		    // printf("Timeout\n");
+		  }
+		  // if tcp socket is readable then handle 
+		  // it by accepting the connection 
+		  if (FD_ISSET(listenfd, &rset)) { 
+		    int flags;
+		    len = sizeof(cliaddr); 
+		    connfd = accept(listenfd, (struct sockaddr*)&cliaddr, &len); 
+		    flags = fcntl(connfd, F_GETFL, 0);
+		    fcntl(connfd, F_SETFL, flags | O_NONBLOCK);
+		    // printf("Got a connection\n");
+		  }
+		} else {
+		  // We have a connection using connfd
+		  bzero(buffer, sizeof(buffer)); 
+		  // printf("Checking connfd\n");
+		  if(read(connfd, buffer, sizeof(buffer)) > 0) {
+		    // printf("Message From TCP client: \n"); 
+		    // puts(buffer);
+		    strcpy(message,"SYNTAX ERROR\n");
+		    if(strncmp(buffer,"GET /ON HTTP/", strlen("GET /ON HTTP/")) == 0) {
+		      displayOn = true;
+		      strcpy(message,"ON\n");
+		    }
+		    if(strncmp(buffer,"GET /OFF HTTP/", strlen("GET /OFF HTTP/")) == 0) {
+		      displayOn = false;
+		      strcpy(message,"OFF\n");
+		    }
+		    write(connfd, (const char*)message, strlen(message)); 
+		    close(connfd); 
+		    connfd = -1;
+		  }  
+		}
+	} while (true);
 	return 0;
 }
