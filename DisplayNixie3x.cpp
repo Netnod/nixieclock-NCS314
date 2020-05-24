@@ -595,6 +595,13 @@ int main(int argc, char* argv[]) {
 	  displayOn = false;
 	  strcpy(message,"OFF\n");
 	}
+	if(strncmp(buffer,"GET /STATUS HTTP/", strlen("GET /STATUS HTTP/")) == 0) {
+	  if(displayOn == true) {
+	    sprintf(message,"%c%c:%c%c:%c%c ON\n", _stringNow[0], _stringNow[1], _stringNow[2], _stringNow[3], _stringNow[4], _stringNow[5]);
+	  } else {
+	    sprintf(message,"%c%c:%c%c:%c%c OFF\n", _stringNow[0], _stringNow[1], _stringNow[2], _stringNow[3], _stringNow[4], _stringNow[5]);
+	  };
+	}
 	write(connfd, (const char*)message, strlen(message)); 
 	close(connfd); 
 	connfd = -1;

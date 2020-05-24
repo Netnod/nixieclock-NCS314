@@ -1,6 +1,7 @@
 # Set the port which is used for listening for commands:
 # GET /ON HTTP/1.0 <--- Turns the clock on
 # GET /OFF HTTP/1.0 <--- Turns the clock off
+# GET /STATUS HTTP/1.0 <--- Get time plus info on whether clock is on or not
 port: 5000
 
 # Set the interface which is used for the access (to display IP address)
