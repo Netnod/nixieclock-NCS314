@@ -642,7 +642,7 @@ int main(int argc, char* argv[]) {
 		if(strcmp(&(_stringNow[2]), "5959") == 0) {
 		  doAntiPoisoning = true;
 		  // date.tm_wday is 0-6 which indicates "days since Sunday", i.e. Sunday is 0, Saturday is 6
-		  if((date.tm_hour + 1) == turn_on[date.tm_wday]) {
+		  if(((date.tm_hour + 1) % 24) == turn_on[date.tm_wday]) {
 		    displayOn = true;
 		  }
 		  if(date.tm_hour == turn_off[date.tm_wday]) {
