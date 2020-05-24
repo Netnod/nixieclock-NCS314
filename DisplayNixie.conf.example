@@ -11,8 +11,8 @@ if: wlan0
 # Number before the colon is "days since Sunday", so 0 is Sunday,
 # 1 is Monday etc.
 # The time interval matches the hour, so 7-23 is 07:00:00-23:59:59.
+# If a day is missing, like Monday (i.e. 1) below, the clock is off that day.
 0: 7-23
-1: 7-18
 2: 7-18
 3: 7-18
 4: 7-18

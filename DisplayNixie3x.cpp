@@ -350,7 +350,11 @@ read_config(char *filename) {
     if(theday == 4) printf("Thursday : ");
     if(theday == 5) printf("Friday   : ");
     if(theday == 6) printf("Saturday : ");
-    printf("%02d:00 - %02d:59\n", turn_on[theday], turn_off[theday]);
+    if(turn_on[theday] < 0) {
+      printf("OFF\n");
+    } else {
+      printf("%02d:00 - %02d:59\n", turn_on[theday], turn_off[theday]);
+    }
   }
   fclose(fp);
   if (line) {
@@ -415,8 +419,8 @@ int main(int argc, char* argv[]) {
   
   // Init time when clock is turned on
   for(theday = 0; theday < 7; theday++) {
-    turn_on[theday] = 0;
-    turn_off[theday] = 23;
+    turn_on[theday] = -1;
+    turn_off[theday] = -1;
   }
   
   // Save last string displayed -- blink with dots if display changed (i.e. second changed)
