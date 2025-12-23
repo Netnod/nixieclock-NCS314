@@ -1,0 +1,7 @@
+# Build artifacts
+*.o
+DisplayNixie
+DisplayNixie3x
+
+# Shell config
+.bash_profile
