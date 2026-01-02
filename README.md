@@ -52,15 +52,9 @@ diskutil unmountDisk /dev/diskN
 
 # Write the image (use rdiskN for faster writes)
 sudo dd if=2024-11-19-raspios-bookworm-arm64-lite.img of=/dev/rdiskN bs=4m status=progress
-
-# Eject
-diskutil eject /dev/diskN
 ```
 
-### 1.3. Enable SSH and WiFi (Only if using manual dd method)
-Skip this section if you used Raspberry Pi Imager (1.1) - SSH and WiFi are configured through the tool.
-
-After writing with dd, remount the SD card and:
+After writing, remount the SD card and configure SSH and WiFi:
 ```
 # Enable SSH
 touch /Volumes/bootfs/ssh
@@ -77,6 +71,9 @@ network={
     key_mgmt=WPA-PSK
 }
 EOF
+
+# Eject
+diskutil eject /dev/diskN
 ```
 
 ## 2. First Boot and Initial Setup
