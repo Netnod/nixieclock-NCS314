@@ -329,7 +329,7 @@ read_config(char *filename) {
   }
   strcpy(interface, "wlan0");
   while ((read = getline(&line, &len, fp)) != -1) {
-    if(sscanf(line, "if: %s", interface)) {
+    if(sscanf(line, "if: %79s", interface)) {
       printf("Use IP address of interface %s\n", interface);
     } else if(sscanf(line, "port: %d", &port)) {
       printf("Use port %d\n", port);
@@ -425,10 +425,10 @@ int main(int argc, char* argv[]) {
   
   // Save last string displayed -- blink with dots if display changed (i.e. second changed)
   char _stringDisplayed[8];
-  _stringDisplayed[0] = (char)NULL;
+  _stringDisplayed[0] = '\0';
   // What time is it?
   char _stringNow[8];
-  _stringNow[0] = (char)NULL;
+  _stringNow[0] = '\0';
   // Save my IP address
   char *myIPAddress = (char *)NULL;
   // Octet of IP address to print 0 <= 3, if displayIPAddress is true
@@ -465,9 +465,15 @@ int main(int argc, char* argv[]) {
   servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
   servaddr.sin_port = htons(port); 
   printf("Binding to port %d\n", port);
-  // binding server addr structure to listenfd 
-  bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)); 
-  listen(listenfd, 10); 
+  // binding server addr structure to listenfd
+  if (bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {
+    perror("bind failed");
+    exit(1);
+  }
+  if (listen(listenfd, 10) < 0) {
+    perror("listen failed");
+    exit(1);
+  } 
   // clear the descriptor set 
   FD_ZERO(&rset); 
   // get maxfd 
@@ -514,7 +520,7 @@ int main(int argc, char* argv[]) {
 	int i[4];
 	free(myIPAddress);
 	myIPAddress = parse_ioctl(interface);
-	if (4 == sscanf(myIPAddress, "%d.%d.%d.%d", &(i[0]), &(i[1]), &(i[2]), &(i[3]))) {
+	if (myIPAddress != NULL && 4 == sscanf(myIPAddress, "%d.%d.%d.%d", &(i[0]), &(i[1]), &(i[2]), &(i[3]))) {
 	  sprintf(_stringToDisplay, "000%03d", i[theOctet]);
 	  if(theOctet == 0) {
 	    printf("Display IP address: %s (%s)\n", myIPAddress, _stringDisplayed);
