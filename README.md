@@ -1,5 +1,5 @@
 # nixieclock-NCS314
-Enhanced software for the [GRA &amp; AFCH](https://gra-afch.com/) NIXIE tube clock. Changes include:
+Enhanced software for the [GRA & AFCH](https://gra-afch.com/) NIXIE tube clock. Changes include:
 
 - Always use NTS for signed NTP to set the time, using Netnod NTS servers
 - Display the IPv4 address of the wlan0 interface if you press the mode button
@@ -17,66 +17,11 @@ https://github.com/afch/NixieClockRaspberryPi
 
 The Nixie Tubes can have a card of version 2.x or 3.x. The two versions of the DisplayNixie binary (DisplayNixie and DisplayNixie3x) in this repository are for each one of the cards.
 
-To install and build the clock do as follows:
+# Installation Guide
 
-# 1. Get the clock
-Buy the clock, follow instructions to do base install of the RaspberryPi and software for the clock. Ensure the clock works. Look at the instructions in this repository if you have problems:
-https://github.com/afch/NixieClockRaspberryPi
-# 2. Ensure the clock uses NTS
-## 2.1. Install chrony
-Chrony is an NTP client with built-in NTS support. It replaces systemd-timesyncd.
-```
-# sudo apt update
-# sudo apt install chrony
-```
-## 2.2. Configure chrony for NTS with Netnod servers
-Edit `/etc/chrony/chrony.conf` and comment out existing pool/server lines, then add:
-```
-server sth1.nts.netnod.se nts iburst
-server sth2.nts.netnod.se nts iburst
-```
-You can also use other Netnod NTS servers: `nts.netnod.se`, `gbg1.nts.netnod.se`, `mmo1.nts.netnod.se`, etc.
-See https://www.netnod.se/netnod-time/how-to-use-nts for more details.
-## 2.3. Enable and start chrony
-```
-# sudo systemctl enable chrony
-# sudo systemctl restart chrony
-```
-## 2.4. Verify NTS is working
-```
-# chronyc -N sources
-# chronyc -N authdata
-```
-The authdata command should show "NTS" in the authentication column.
-# 3. Install wiringPi
-The wiringPi library is required for GPIO access. It is maintained at https://github.com/WiringPi/WiringPi
+## 1. Create Bootable SD Card (macOS)
 
-Download the latest .deb package from the releases page and install:
-```
-# For 64-bit Raspberry Pi OS (arm64):
-wget https://github.com/WiringPi/WiringPi/releases/download/3.14/wiringpi_3.14_arm64.deb
-sudo apt install ./wiringpi_3.14_arm64.deb
-
-# For 32-bit Raspberry Pi OS (armhf):
-wget https://github.com/WiringPi/WiringPi/releases/download/3.14/wiringpi_3.14_armhf.deb
-sudo apt install ./wiringpi_3.14_armhf.deb
-```
-Check https://github.com/WiringPi/WiringPi/releases for newer versions.
-
-# 4. Build and install this package
-```
-# make
-# sudo make install
-```
-# 5. Configure the display
-## 5.1. Make sure the correct DisplayNixie binary is started at boot
-Edit `/etc/rc.local` to your liking. Launch either `DisplayNixie` (for version 2) or `DisplayNixie3x` (for version 3) of the card.
-## 5.2. Ensure clock is turned on when you want to
-Edit `/etc/DisplayNixie.conf` to include the time intervals when the clock is to be turned on.
-
-# 6. Creating a Bootable SD Card (macOS)
-
-## 6.1. Using Raspberry Pi Imager (Recommended)
+### 1.1. Using Raspberry Pi Imager (Recommended)
 ```
 brew install --cask raspberry-pi-imager
 ```
@@ -84,14 +29,14 @@ brew install --cask raspberry-pi-imager
 1. Launch **Raspberry Pi Imager**
 2. Select OS: **Raspberry Pi OS Lite (64-bit)** - no desktop needed for a headless clock
 3. Select your SD card
-4. Click the gear icon (⚙️) for advanced options:
+4. Click the gear icon for advanced options:
    - Set hostname: `nixieclock`
    - Enable SSH
    - Set username/password
    - Configure WiFi
 5. Click **Write**
 
-## 6.2. Manual Method (dd)
+### 1.2. Manual Method (dd)
 ```
 # Download Raspberry Pi OS Lite
 curl -LO https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2024-11-19/2024-11-19-raspios-bookworm-arm64-lite.img.xz
@@ -112,7 +57,7 @@ sudo dd if=2024-11-19-raspios-bookworm-arm64-lite.img of=/dev/rdiskN bs=4m statu
 diskutil eject /dev/diskN
 ```
 
-## 6.3. Enable SSH and WiFi (Manual method)
+### 1.3. Enable SSH and WiFi (Manual method only)
 After writing, remount the SD card and:
 ```
 # Enable SSH
@@ -132,32 +77,183 @@ network={
 EOF
 ```
 
-# 7. Read-Only Filesystem Setup (SD Card Longevity)
+## 2. First Boot and Initial Setup
 
-This software is ideal for a read-only root filesystem:
+Insert SD card into Raspberry Pi and power on. SSH into the Pi:
+```
+ssh username@nixieclock.local
+```
+
+### 2.1. Fix Locale (if connecting from non-English system)
+If you see locale warnings like `LC_CTYPE: cannot change locale`, generate the required locale:
+```
+sudo sed -i 's/^# *sv_SE.UTF-8/sv_SE.UTF-8/' /etc/locale.gen
+sudo locale-gen
+```
+Replace `sv_SE.UTF-8` with your locale if different. Log out and back in for the fix to take effect.
+
+### 2.2. Update System and Install Required Packages
+```
+sudo apt update
+sudo apt upgrade -y
+sudo apt install git chrony
+```
+
+## 3. Enable I2C and SPI
+
+The clock hardware requires both I2C (for RTC) and SPI (for display):
+```
+sudo raspi-config nonint do_i2c 0
+sudo raspi-config nonint do_spi 0
+```
+
+Verify the interfaces are enabled:
+```
+ls /dev/i2c* /dev/spidev*
+```
+You should see `/dev/i2c-1`, `/dev/spidev0.0`, and `/dev/spidev0.1`.
+
+## 4. Configure NTS (Network Time Security)
+
+### 4.1. Configure chrony for NTS with Netnod servers
+Edit `/etc/chrony/chrony.conf` and comment out existing pool/server lines, then add:
+```
+server sth1.nts.netnod.se nts iburst
+server sth2.nts.netnod.se nts iburst
+```
+You can also use other Netnod NTS servers: `nts.netnod.se`, `gbg1.nts.netnod.se`, `mmo1.nts.netnod.se`, etc.
+See https://www.netnod.se/netnod-time/how-to-use-nts for more details.
+
+### 4.2. Enable and start chrony
+```
+sudo systemctl enable chrony
+sudo systemctl restart chrony
+```
+
+### 4.3. Verify NTS is working
+```
+chronyc -N sources
+chronyc -N authdata
+```
+The authdata command should show "NTS" in the authentication column.
+
+## 5. Install wiringPi
+
+The wiringPi library is required for GPIO access. It is maintained at https://github.com/WiringPi/WiringPi
+
+Download the latest .deb package from the releases page and install:
+```
+# For 64-bit Raspberry Pi OS (arm64):
+wget https://github.com/WiringPi/WiringPi/releases/download/3.14/wiringpi_3.14_arm64.deb
+sudo apt install ./wiringpi_3.14_arm64.deb
+
+# For 32-bit Raspberry Pi OS (armhf):
+wget https://github.com/WiringPi/WiringPi/releases/download/3.14/wiringpi_3.14_armhf.deb
+sudo apt install ./wiringpi_3.14_armhf.deb
+```
+Check https://github.com/WiringPi/WiringPi/releases for newer versions.
+
+Verify installation:
+```
+gpio -v
+```
+
+## 6. Build and Install the Clock Software
+
+```
+git clone https://github.com/Netnod/nixieclock-NCS314.git
+cd nixieclock-NCS314
+make
+sudo make install
+```
+
+## 7. Configure the Display
+
+### 7.1. Create configuration file
+```
+sudo cp /etc/DisplayNixie.conf.example /etc/DisplayNixie.conf
+sudo nano /etc/DisplayNixie.conf
+```
+Edit the time intervals when the clock should be turned on.
+
+### 7.2. Create systemd service
+Create `/etc/systemd/system/nixieclock.service`:
+```
+sudo tee /etc/systemd/system/nixieclock.service << 'EOF'
+[Unit]
+Description=Nixie Clock Display
+After=network.target time-sync.target
+Wants=time-sync.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/DisplayNixie -c /etc/DisplayNixie.conf
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+Note: Use `DisplayNixie` for card version 2.x or `DisplayNixie3x` for card version 3.x.
+
+### 7.3. Enable and start the service
+```
+sudo systemctl daemon-reload
+sudo systemctl enable nixieclock
+sudo systemctl start nixieclock
+```
+
+### 7.4. Check status
+```
+sudo systemctl status nixieclock
+```
+
+## 8. Read-Only Filesystem Setup (Recommended)
+
+Setting up a read-only filesystem dramatically extends SD card lifespan. This software is ideal for read-only operation:
 - Configuration (`/etc/DisplayNixie.conf`) is only read at startup
 - Time is stored in the hardware RTC via I2C, not on the SD card
 - No log files or state files are written during operation
 
-Setting up a read-only filesystem dramatically extends SD card lifespan.
+### 8.1. Using OverlayFS (Recommended)
 
-## 7.1. Using OverlayFS (Recommended)
+Interactive method:
 ```
 sudo raspi-config
-# Navigate to: Performance Options → Overlay File System → Enable
+# Navigate to: Performance Options -> Overlay File System -> Enable
 ```
 
-This makes the root filesystem read-only with a RAM-based overlay for any writes.
-
-## 7.2. Manual Read-Only Setup
-
-Create and run this setup script on the Pi:
+Or using command line:
 ```
-#!/bin/bash
-# setup-readonly.sh
+sudo raspi-config nonint do_overlayfs 0
+sudo reboot
+```
 
-set -e
+This makes the root filesystem read-only with a RAM-based overlay for any writes. The actual SD card is mounted read-only at `/media/root-ro`, while all writes go to RAM.
 
+### 8.2. Making Persistent Changes
+
+With overlay enabled, changes to system files are lost on reboot. To make persistent changes (e.g., edit `/etc/chrony/chrony.conf` or install packages):
+
+```
+# Disable overlay
+sudo raspi-config nonint do_overlayfs 1
+sudo reboot
+
+# After reboot, make your changes...
+# Then re-enable overlay
+sudo raspi-config nonint do_overlayfs 0
+sudo reboot
+```
+
+Note: `0` = enable overlay (read-only), `1` = disable overlay (read-write)
+
+### 8.3. Manual Read-Only Setup (Alternative)
+
+If you prefer manual control, run these commands:
+```
 # Disable swap
 sudo dphys-swapfile swapoff
 sudo dphys-swapfile uninstall
@@ -199,46 +295,25 @@ SCRIPT
 
 sudo chmod +x /usr/local/bin/rw /usr/local/bin/ro
 
-# Make root read-only in fstab
+# Make root read-only in fstab (edit the line with your root partition)
 sudo sed -i 's/defaults,noatime/defaults,noatime,ro/' /etc/fstab
-
-echo "Setup complete. Reboot to apply."
-echo "Use 'rw' to temporarily make filesystem writable for updates."
-echo "Use 'ro' to make it read-only again."
 ```
 
-## 7.3. Systemd Service File
-Create `/etc/systemd/system/nixieclock.service`:
-```
-[Unit]
-Description=Nixie Clock Display
-After=network.target
+Reboot to apply. Use `rw` to temporarily make filesystem writable for updates, and `ro` to make it read-only again.
 
-[Service]
-Type=simple
-ExecStart=/usr/local/sbin/DisplayNixie
-Restart=always
-RestartSec=5
+## 9. Verify Installation
 
-[Install]
-WantedBy=multi-user.target
+After reboot, verify everything is working:
 ```
+# Check clock service
+sudo systemctl status nixieclock
 
-Enable with:
-```
-sudo systemctl enable nixieclock
+# Check NTS time sync
+chronyc -N sources
+chronyc -N authdata
+
+# Check I2C and SPI devices
+ls /dev/i2c* /dev/spidev*
 ```
 
-## 7.4. Installing on a Read-Only System
-```
-# Temporarily make writable
-rw
-
-# Install, configure, etc.
-sudo apt update
-sudo apt install chrony
-# ... other setup ...
-
-# Make read-only again
-ro
-```
+The clock display should now be showing the time according to your configuration.
