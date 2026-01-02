@@ -57,8 +57,10 @@ sudo dd if=2024-11-19-raspios-bookworm-arm64-lite.img of=/dev/rdiskN bs=4m statu
 diskutil eject /dev/diskN
 ```
 
-### 1.3. Enable SSH and WiFi (Manual method only)
-After writing, remount the SD card and:
+### 1.3. Enable SSH and WiFi (Only if using manual dd method)
+Skip this section if you used Raspberry Pi Imager (1.1) - SSH and WiFi are configured through the tool.
+
+After writing with dd, remount the SD card and:
 ```
 # Enable SSH
 touch /Volumes/bootfs/ssh
@@ -133,7 +135,7 @@ sudo systemctl restart chrony
 ### 4.3. Verify NTS is working
 ```
 chronyc -N sources
-chronyc -N authdata
+sudo chronyc -N authdata
 ```
 The authdata command should show "NTS" in the authentication column.
 
@@ -310,7 +312,7 @@ sudo systemctl status nixieclock
 
 # Check NTS time sync
 chronyc -N sources
-chronyc -N authdata
+sudo chronyc -N authdata
 
 # Check I2C and SPI devices
 ls /dev/i2c* /dev/spidev*
